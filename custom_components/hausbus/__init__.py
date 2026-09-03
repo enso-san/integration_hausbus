@@ -115,6 +115,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: HausbusConfigEntry) -> 
     """Unload a config entry."""
     gateway = entry.runtime_data.gateway
 
+    gateway.shutdown()
     gateway.home_server.removeBusEventListener(gateway)
     hass.services.async_remove(DOMAIN, "discover_devices")
     hass.services.async_remove(DOMAIN, "reset_device")

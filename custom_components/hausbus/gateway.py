@@ -76,9 +76,7 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
         self.devices: dict[str, HausbusDevice] = {}
         self.channels: dict[str, dict[tuple[str, str], HausbusEntity]] = {}
         self.events: dict[int, HausBusEvent] = {}
-        self.home_server = HomeServer()
-        self.home_server.addBusEventListener(self)
-        self.home_server.addBusDeviceListener(self)
+        self.home_server: HomeServer | None = None
         self._new_channel_listeners: dict[
             str, Callable[[HausbusEntity], Coroutine[Any, Any, None]]
         ] = {}
@@ -89,6 +87,12 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
         # self.hass.bus.async_listen("state_changed", self._state_changed_listener)
 
         # asyncio.run_coroutine_threadsafe(self.async_delete_devices(), self.hass.loop)
+
+    async def async_setup(self) -> None:
+        """Construct the (blocking, network-verifying) HomeServer off the event loop."""
+        self.home_server = await self.hass.async_add_executor_job(HomeServer)
+        self.home_server.addBusEventListener(self)
+        self.home_server.addBusDeviceListener(self)
 
     async def createDiscoveryButtonAndStartDiscovery(self):
       """Creates a Button to manually start device discovery and starts discovery"""

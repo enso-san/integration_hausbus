@@ -33,12 +33,12 @@ class ConfigFlow(IBusDataListener, config_entries.ConfigFlow, domain=DOMAIN):  #
         """Initialize the config flow."""
         self._found_device = False
         self._search_task: asyncio.Task | None = None
-        self.home_server = HomeServer()
-        self.home_server.addBusEventListener(self)
+        self.home_server: HomeServer | None = None
 
     def remove_bus_event_listeners(self) -> None:
         """Cleanup after finishing the config flow."""
-        self.home_server.removeBusEventListener(self)
+        if self.home_server is not None:
+            self.home_server.removeBusEventListener(self)
         #self.home_server.removeBusEventListener(self.home_server)
 
     def async_remove(self) -> None:
@@ -89,6 +89,9 @@ class ConfigFlow(IBusDataListener, config_entries.ConfigFlow, domain=DOMAIN):  #
 
     async def _async_wait_for_device(self) -> None:
         """Start searching for devices and wait until at least one device was found or timeout is reached."""
+        if self.home_server is None:
+            self.home_server = await self.hass.async_add_executor_job(HomeServer)
+            self.home_server.addBusEventListener(self)
         self.hass.async_add_executor_job(self.home_server.searchDevices)
         # wait for up to 5 seconds to find devices
         await asyncio.wait_for(self._check_device_found(), DEVICE_SEARCH_TIMEOUT)
